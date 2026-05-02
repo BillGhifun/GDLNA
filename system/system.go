@@ -75,10 +75,10 @@ func RemoveInvalidChars(mediaName string, mediaTime string) string {
 func GetRuneName(tmpTitle string) string {
 	if strings.TrimSpace(tmpTitle) != "" {
 		runes := []rune(tmpTitle)
-		if len(runes) > 10 {
-			return string(runes[:10]) + "..."
+		if len(runes) > 20 {
+			return string(runes[:20]) + "..."
 		} else {
-			return string(runes) // 如果字符少于10个，保持原样
+			return string(runes) // 如果字符少于20个，保持原样
 		}
 	} else {
 		return "投屏视频"

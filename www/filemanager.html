@@ -584,12 +584,8 @@
 
     // 构建文件表格行 HTML 字符串
     function buildFileRow(item, index) {
-        const truncatedName = item["name"].length > 40
-            ? item["name"].substr(0, 37) + "..."
-            : item["name"];
-
         return `<tr>
-                    <td class="file-name" title="${item["name"]}">${truncatedName}</td>
+                    <td class="file-name" title="${item["name"]}">${item["name"]}</td>
                     <td>${item["size"]}</td>
                     <td>${item["time"]}</td>
                     <td>

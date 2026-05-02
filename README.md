@@ -5,6 +5,19 @@
 
 GDLNA 是一个用 Go 语言开发的 DLNA 投屏链接捕获工具。它模拟 DLNA MediaRenderer 设备，拦截并提取来自手机、平板等设备的投屏请求中的媒体地址，方便用户获取视频/音频的真实播放链接。
 
+## 📷 界面预览
+
+<table>
+<tr>
+<td align="center"><strong>媒体列表</strong></td>
+<td align="center"><strong>文件管理</strong></td>
+</tr>
+<tr>
+<td><img src="pic/Main.png" alt="媒体列表示例" width="400"/></td>
+<td><img src="pic/File.png" alt="文件管理示例" width="400"/></td>
+</tr>
+</table>
+
 ## ✨ 功能特性
 
 - **DLNA 投屏链接捕获**
