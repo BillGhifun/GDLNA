@@ -1,0 +1,219 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  
+  <head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=8">
+<meta http-equiv="Expires" content="0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Cache" content="no-cache">
+
+
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>GhifunDNS Monitor</title>
+    <!-- plugins:css -->
+    <link rel="stylesheet" href="static/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="static/css/vendor.bundle.base.css">
+    <!-- endinject -->
+    <!-- Plugin css for this page -->
+    <link rel="stylesheet" href="static/css/jquery-jvectormap.css">
+    <link rel="stylesheet" href="static/css/flag-icon.min.css">
+    <link rel="stylesheet" href="static/css/owl.carousel.min.css">
+    <link rel="stylesheet" href="static/css/owl.theme.default.min.css">
+    <!-- End plugin css for this page -->
+    <!-- inject:css -->
+    <!-- endinject -->
+    <!-- Layout styles -->
+    <link rel="stylesheet" href="static/css/style.css">
+    <!-- End layout styles --></head>
+
+<script>
+window.onload=function runoob(){
+	//alert(location.search.substring(1));	
+	var gid = getQueryParam('id');
+	//var gdomain = getQueryParam('domain');
+	//var gtype = getQueryParam('type');
+	//searchhistory(getQueryParam('ip'),'*','1');
+	if (gid===""){
+	//select_dlna_device();
+	}
+	else
+	{
+	select_dlna_device(gid);
+	}
+}
+//window.onload = searchhistory('*','*','*','1');
+</script>
+
+<script>
+function getQueryParam(key) {
+     var query = location.search.substring(1);
+     var arr = query.split('&');
+     for (var i = 0; i < arr.length; i++) {
+         var pair = arr[i].split('=')
+         if (pair[0] == key) {
+             return pair[1]
+	//alert(pair[1]);
+         }
+     }
+return ""
+}
+</script>
+
+<script>
+function dlna_media_set(k)
+{
+	var r = confirm("是否播放?");
+	if (r)
+	{
+		document.getElementById("EventBak").value="";
+		var xhr = new XMLHttpRequest();
+		//alert(encodeURI(k));
+		xhr.open('GET', '/dlna_media_set?media=' + encodeURI(k), true);
+		xhr.responseType = 'text';
+		xhr.onload = function () {
+    		if (xhr.readyState === xhr.DONE) {
+        		if (xhr.status === 200) {
+				//alert(xhr.responseText);
+				document.getElementById("EventBak").value=xhr.responseText;
+				//alert(xhr.responseText);
+        		}
+    		}
+		};
+		xhr.send();
+	}
+}
+</script>
+
+
+<script>
+//控制
+function dlna_media_ctl(k)
+{
+	document.getElementById("EventBak").value="";
+	var xhr = new XMLHttpRequest();
+	//alert(encodeURI(k));
+	xhr.open('GET', '/dlna_media_ctl?ctl=' + k, true);
+	xhr.responseType = 'text';
+	xhr.onload = function () {
+    	if (xhr.readyState === xhr.DONE) {
+        	if (xhr.status === 200) {
+			//alert(xhr.responseText);
+			document.getElementById("EventBak").value=xhr.responseText;
+			//alert(xhr.responseText);
+        	}
+    	}
+	};
+	xhr.send();
+}
+</script>
+
+
+  <body>
+        <div class="main-panel">
+          <div class="content-wrapper">
+	    <div class="row">
+	      <div class="col-12 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body" id="web_dlna_device_name">
+                    <h4 class="card-title">DLNA_DEVICE_NAME</h4>
+                    <p class="card-description">DLNA_DEVICE_IP</p>
+                    <form class="forms-sample">
+                      <div class="form-group">
+                      <div class="input-group">
+<!---https://mp3.itingwa.com/2016-12/23/20161223112343-Njg3OTYz.mp3---!>
+<!---http://d-ring.i4.cn/audio/2016/08/19/15/1471590273835_436923.mp3---!>
+<!---https://wj1.kumeiwp.com:812/wj/bl/2022/04/03/362f22407c154ca3e7ddf51007053c76.mp3?t=1670739136&key=1c25d45b9900a141fa0f---!>
+                        <input type="text" value="https://v16m-default.akamaized.net/31f20167639dfaa5869636554cbe3e9f/6395ce45/video/tos/alisg/tos-alisg-v-0000/okMVAQeonCLeVFsUADbuAvmk6e83qOGMfOM2Xq/?a=2011&ch=0&cr=0&dr=0&net=5&cd=0%7C0%7C0%7C0&br=3046&bt=1523&cs=0&ds=4&ft=XE5bCqT0mmjPD12aMsxq3wU7C1JcMeF~OD&mime_type=video_mp4&qs=0&rc=ZjM3ZzU5PGQ8NjY8aDxoNkBpM2Q4OTo6ZnFvaDMzODYzNEBeM2NeYzYvNjIxYmA1L2NhYSMwbnBjcjRnY15gLS1kMC1zcw%3D%3D&l=202212110615060101901860381DB6E933&btag=80000" id="dlna_media_url" class="form-control" style="color:white" placeholder="输入媒体地址" aria-label="输入媒体地址" aria-describedby="basic-addon2">
+                        <div class="input-group-append">
+                          <button class="btn btn-sm btn-primary" type="button" onclick="dlna_media_set(document.getElementById('dlna_media_url').value);">设置媒体</button>
+                        </div>
+                      </div>
+                      </div>
+                 <div>
+                 <button class="btn btn-sm btn-primary" type="button" onclick="dlna_media_ctl(1);">播放</button>
+                 <button class="btn btn-sm btn-primary" type="button" onclick="dlna_media_ctl(2);">暂停</button>
+                 <button class="btn btn-sm btn-primary" type="button" onclick="dlna_media_ctl(3);">停止</button>
+                 </div>
+                        <div><br>
+                        <label for="exampleTextarea1">调试:</label>
+                        <textarea class="form-control" id="EventBak" style="color:white" id="Hosts" rows="15"></textarea>
+                        </div>
+                  </div>
+                </div>
+              </div>
+	    </div>
+	    <div class="row">
+	      <div class="col-12 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title"><b>说明</b></h4>
+		    <p>
+                       空
+		    </p>
+		  </div>
+		</div>
+	      </div>
+	    </div>
+          </div>
+          <!-- content-wrapper ends -->
+          <!-- partial:../../partials/_footer.html -->
+          <footer class="footer">
+            <div class="d-sm-flex justify-content-center justify-content-sm-between">
+              <span class="text-muted d-block text-center text-sm-left d-sm-inline-block">Copyright &copy; 2022.GhifunDNS All rights reserved.</span>
+            </div>
+          </footer>
+          <!-- partial --></div>
+        <!-- main-panel ends --></div>
+      <!-- page-body-wrapper ends --></div>
+    <!-- container-scroller -->
+    <!-- plugins:js -->
+    <script src="static/js/vendor.bundle.base.js"></script>
+    <!-- endinject -->
+    <!-- Plugin js for this page -->
+    <script src="static/js/select2.min.js"></script>
+    <script src="static/js/typeahead.bundle.min.js"></script>
+    <!-- End plugin js for this page -->
+    <!-- inject:js -->
+    <script src="static/js/off-canvas.js"></script>
+    <script src="static/js/hoverable-collapse.js"></script>
+    <script src="static/js/misc.js"></script>
+    <script src="static/js/settings.js"></script>
+    <script src="static/js/todolist.js"></script>
+    <!-- endinject -->
+    <!-- Custom js for this page -->
+    <script src="static/js/file-upload.js"></script>
+    <script src="static/js/typeahead.js"></script>
+    <script src="static/js/select2.js"></script>
+    <!-- End custom js for this page --></body>
+
+<script>
+function select_dlna_device(t) {
+	const xhb = new XMLHttpRequest();
+	xhb.open("GET", "/select_dlna_device?id=" + t,true);
+	xhb.getResponseHeader("Content-type", "application/json");
+	xhb.onload = function() {
+	if (xhb.readyState === xhb.DONE) {
+		if (xhb.status === 200) {
+			var jsona =JSON.parse(xhb.responseText);
+			//var sa=xhb.responseText;
+			//var tmp = document.createElement('div');
+			//var SignFrame=tmp.innerHTML+=sa;
+			//document.getElementById("get_applyipwhite").appendChild(tmp);//添加到你指的的id的地方
+			//document.getElementById("get_applyipwhite").innerHTML=xhb.responseText;
+			document.getElementById("web_dlna_device_name").getElementsByTagName('h4')[0].innerHTML = jsona[0].value
+			document.getElementById("web_dlna_device_name").getElementsByTagName('p')[0].innerHTML = jsona[1].value
+		}
+	}
+	}
+xhb.send();
+}
+</script>
+
+</html>

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>GhifunDLNA - 文件列表</title>
+    <link rel="stylesheet" href="./static/css/font-awesome.all.min.css">
+    <link rel="stylesheet" href="./static/css/toastr.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            z-index: -1;
+        }
+
+        /* Webkit浏览器滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #60a5fa;
+            border-radius: 4px;
+        }
+
+        .header {
+            text-align: center;
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #60a5fa 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(2, 8, 20, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 25px;
+        }
+
+        .card-header {
+            /*padding: 15px 20px;*/
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            /*justify-content: space-between;*/
+            align-items: center;
+        }
+
+        .margin-left{
+            margin-left: 20px;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-title i {
+            color: #60a5fa;
+            font-size: 1.6rem;
+        }
+
+        .card-body {
+            padding: 5px;
+        }
+
+        .btn {
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            white-space: nowrap;
+            padding: 8px 16px;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.85rem;
+        }
+
+        .btn-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            background: rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-primary {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(59, 130, 246, 0.25);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.3);
+            /*margin-top: 10px;*/
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Consolas, Monaco, monospace;
+        }
+
+        th, td {
+            /*padding: 12px 15px !important;*/
+            padding: 8px 12px !important;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        th {
+            background: rgba(30, 58, 138, 0.3);
+            color: #93c5fd;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        td {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        td a {
+            font-size: 0.9rem;
+            color: #4ebcff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        tr:hover td {
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            color: #60a5fa;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 5px;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .action-success {
+            color: #10b981;
+        }
+
+        .action-danger {
+            color: #ef4444;
+        }
+
+        .action-primary {
+            color: #3b82f6;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(96, 165, 250, 0.3);
+            border-top: 4px solid #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        .loading-text {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-card {
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 12px;
+            width: 85%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            padding: 20px;
+            position: relative;
+        }
+
+        .popup-overlay.active .popup-card {
+            transform: translateY(0);
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .popup-close:hover {
+            color: #ef4444;
+        }
+
+        .popup-content {
+            color: #e2e8f0;
+            line-height: 1.6;
+            white-space: normal;
+            word-break: break-all;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px 0 15px;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 15px;
+        }
+
+        .file-name {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .table-container {
+                min-width: 100%;
+                border-radius: 0;
+                margin-left: -15px;
+                margin-right: -15px;
+                width: calc(100% + 30px);
+            }
+
+            th, td {
+                padding: 8px 10px !important;
+                white-space: nowrap;
+            }
+
+            td, td a {
+                font-size: 0.8rem;
+            }
+
+            .action-btn {
+                font-size: 14px;
+                margin: 0 3px;
+            }
+
+            .file-name {
+                max-width: 150px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .card-title {
+                font-size: 1.3rem;
+            }
+
+            .btn {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+
+            .card-body {
+                padding: 15px 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="header">
+    <h1>GhifunDLNA 文件管理</h1>
+</div>
+
+<div class="dashboard">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-file-alt"></i>
+                <span style="margin-top: -5px">媒体文件</span>
+            </div>
+            <button class="btn btn-success btn-sm margin-left" onclick="file_get_list()">
+                <i class="fas fa-sync-alt"></i> 刷新
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>文件大小</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="file_list">
+                    <tr>
+                        <td colspan="4" class="loading">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">正在加载文件列表...</div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 确认删除弹窗 -->
+<div class="popup-overlay" id="delete-popup">
+    <div class="popup-card">
+        <span class="popup-close" onclick="closeDeletePopup()">&times;</span>
+        <div class="popup-content">
+            <h3 style="margin-bottom: 15px;">确认删除</h3>
+            <p>您确定要删除文件 "<span id="delete-file-name"></span>" 吗？</p>
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px; gap: 10px;">
+                <button class="btn btn-primary" onclick="closeDeletePopup()">取消</button>
+                <button class="btn btn-danger" id="confirm-delete-btn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="./static/js/jquery.min.js"></script>
+<script src="./static/js/toastr.min.js"></script>
+
+<script>
+    // 初始化Toastr
+    toastr.options = {
+        closeButton: true,
+        progressBar: true,
+        positionClass: 'toast-bottom-right',
+        timeOut: 3000,
+        preventDuplicates: true
+    };
+
+    // 缓存DOM元素引用
+    const domElements = {
+        fileList: document.getElementById("file_list"),
+        deletePopup: document.getElementById("delete-popup"),
+        deleteFileName: document.getElementById("delete-file-name"),
+        confirmDeleteBtn: document.getElementById("confirm-delete-btn")
+    };
+
+    // 待删除的文件名
+    let pendingDeleteFileName = '';
+
+    // 页面加载时获取文件列表
+    document.addEventListener('DOMContentLoaded', function() {
+        file_get_list();
+    });
+
+    // 获取文件列表
+    function file_get_list() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/file_get_list', true);
+        xhr.responseType = 'text';
+        xhr.timeout = 10000; // 设置 10 秒超时
+        
+        // 显示加载状态
+        domElements.fileList.innerHTML = `
+            <tr>
+                <td colspan="4" class="loading">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">正在加载文件列表...</div>
+                </td>
+            </tr>
+        `;
+        
+        xhr.onload = function () {
+            if (xhr.readyState === xhr.DONE) {
+                if (xhr.status === 200) {
+                    try {
+                        const fileList = JSON.parse(xhr.responseText);
+                        if (fileList["files"] !== null && fileList["files"] !== undefined) {
+                            let sst = fileList["files"];
+                            
+                            // 按创建时间从新到旧排序
+                            sst.sort(function(a, b) {
+                                return new Date(b.time) - new Date(a.time);
+                            });
+                            
+                            // 如果没有数据
+                            if (sst.length === 0) {
+                                domElements.fileList.innerHTML = `
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; padding: 30px; color: #94a3b8;">
+                                            <i class="fas fa-info-circle"></i> 没有找到文件
+                                        </td>
+                                    </tr>
+                                `;
+                                return;
+                            }
+                            
+                            // 批量构建 HTML 字符串，减少 DOM 操作
+                            let htmlRows = '';
+                            for (let i = 0; i < sst.length; i++) {
+                                htmlRows += buildFileRow(sst[i], i);
+                            }
+                            
+                            // 一次性插入所有行
+                            domElements.fileList.innerHTML = htmlRows;
+                        } else {
+                            domElements.fileList.innerHTML = `
+                                <tr>
+                                    <td colspan="4" style="text-align: center; padding: 30px; color: #94a3b8;">
+                                        <i class="fas fa-info-circle"></i> 没有找到文件
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    } catch (e) {
+                        console.error('JSON 解析错误:', e);
+                        toastr.error('数据格式错误');
+                        domElements.fileList.innerHTML = `
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 30px; color: #ef4444;">
+                                    <i class="fas fa-exclamation-triangle"></i> 数据解析失败
+                                </td>
+                            </tr>
+                        `;
+                    }
+                } else {
+                    toastr.error("获取文件列表失败");
+                    domElements.fileList.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 30px; color: #ef4444;">
+                                <i class="fas fa-exclamation-triangle"></i> 加载失败，请刷新重试
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        };
+        xhr.onerror = function() {
+            toastr.error("网络错误，无法获取文件列表");
+            domElements.fileList.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 30px; color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle"></i> 网络错误
+                    </td>
+                </tr>
+            `;
+        };
+        xhr.ontimeout = function() {
+            toastr.error("请求超时");
+            domElements.fileList.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 30px; color: #ef4444;">
+                        <i class="fas fa-clock"></i> 请求超时，请刷新重试
+                    </td>
+                </tr>
+            `;
+        };
+        xhr.send(null);
+    }
+
+    // 构建文件表格行 HTML 字符串
+    function buildFileRow(item, index) {
+        const truncatedName = item["name"].length > 40
+            ? item["name"].substr(0, 37) + "..."
+            : item["name"];
+
+        return `<tr>
+                    <td class="file-name" title="${item["name"]}">${truncatedName}</td>
+                    <td>${item["size"]}</td>
+                    <td>${item["time"]}</td>
+                    <td>
+                        <button class="action-btn action-primary"
+                                onclick="copy_link('${item["path"]}${encodeURIComponent(encodeURIComponent(item["name"]))}')"
+                                title="复制链接">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <a href="openvideo?title=${encodeURIComponent(item["name"])}&videoUrl=${item["path"]}${encodeURIComponent(encodeURIComponent(item["name"]))}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="action-btn action-success"
+                           title="播放">
+                            <i class="fas fa-play-circle"></i>
+                        </a>
+                        <a href="${item["path"]}${encodeURIComponent(item["name"])}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           download="${item["name"]}"
+                           class="action-btn action-primary"
+                           title="下载">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        <button class="action-btn action-danger"
+                                onclick="showDeletePopup('${item["name"]}')"
+                                title="删除">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>`;
+    }
+
+    // 显示删除确认弹窗
+    function showDeletePopup(fileName) {
+        pendingDeleteFileName = fileName;
+        domElements.deleteFileName.textContent = fileName;
+        domElements.deletePopup.classList.add("active");
+    }
+
+    // 关闭删除确认弹窗
+    function closeDeletePopup() {
+        domElements.deletePopup.classList.remove("active");
+    }
+
+    // 确认删除文件
+    domElements.confirmDeleteBtn.addEventListener('click', function() {
+        file_del(pendingDeleteFileName);
+        closeDeletePopup();
+    });
+
+    // 删除文件
+    function file_del(fileName) {
+        toastr.info("正在删除文件...");
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/file_del?name=' + encodeURIComponent(fileName), true);
+        xhr.responseType = 'text';
+        xhr.onload = function () {
+            if (xhr.readyState === xhr.DONE) {
+                if (xhr.status === 200) {
+                    toastr.success(xhr.responseText);
+                    // setTimeout(function() {
+                        file_get_list();
+                    // }, 1500);
+                } else {
+                    toastr.error("删除失败");
+                }
+            }
+        };
+        xhr.onerror = function() {
+            toastr.error("网络错误，无法删除文件");
+        };
+        xhr.send(null);
+    }
+
+    // 复制链接
+    function copy_link(link) {
+        let tmpLink = getRootPath(window.location.href) + link;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(tmpLink)
+                .then(() => {
+                    toastr.success('链接已复制');
+                })
+                .catch(err => {
+                    console.error('复制失败:', err);
+                    copyLinkFallback(tmpLink);
+                });
+        } else {
+            copyLinkFallback(tmpLink);
+        }
+    }
+
+    // 复制链接备用方案
+    function copyLinkFallback(link) {
+        const tempInput = document.createElement('input');
+        tempInput.value = link;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        toastr.success('链接已复制');
+    }
+
+    // 获取根路径
+    function getRootPath(urlString) {
+        const url = new URL(urlString);
+        const pathParts = url.pathname.split('/');
+        pathParts.pop(); // 去掉文件名
+        const path = pathParts.join('/') + '/';
+        const protocol = url.protocol;
+        const host = url.host;
+        return protocol + '//' + host + path;
+    }
+</script>
+</body>
+</html>

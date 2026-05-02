@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>GhifunDLNA Monitor</title>
+    <link rel="stylesheet" href="./static/css/font-awesome.all.min.css">
+    <link rel="stylesheet" href="./static/css/toastr.min.css">
+<!--    <link rel="stylesheet" href="./static/css/materialdesignicons.min.css">-->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            z-index: -1;
+        }
+
+        /* Webkit浏览器滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #60a5fa;
+            border-radius: 4px;
+        }
+
+        .header {
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #60a5fa 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(2, 8, 20, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 25px;
+        }
+
+        .card-header {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            /*justify-content: space-between;*/
+            align-items: center;
+        }
+
+        .margin-left{
+            margin-left: 20px;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-title i {
+            color: #60a5fa;
+            font-size: 1.6rem;
+        }
+
+        .card-body {
+            /*padding: 25px;*/
+            padding: 5px;
+        }
+
+        .panel-ico {
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            font-size: 16px;
+        }
+
+        .btn {
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn-bg {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            min-height: 36px;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            min-height: 30px;
+            max-height: 30px;
+        }
+
+        .btn-search {
+            padding: 11px 11px;
+            min-height: 40px;
+            max-height: 40px;
+        }
+
+        .btn-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            background: rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-primary {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(59, 130, 246, 0.25);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.3);
+            /*margin-top: 10px;*/
+            -webkit-overflow-scrolling: touch;
+            min-width: 1000px;
+        }
+
+        table {
+            min-width: 100%;
+            width: auto;
+            border-collapse: collapse;
+            font-family: Consolas, Monaco, monospace;
+        }
+
+        th, td {
+            /*padding: 12px 15px !important;*/
+            padding: 8px 12px !important;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        th {
+            background: rgba(30, 58, 138, 0.3);
+            color: #93c5fd;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        td {
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        /* 表格中的链接 */
+        td a{
+            font-size: 0.9rem;
+            color: #4ebcff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        tr:hover td {
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-info {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            color: #60a5fa;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 5px;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .action-success {
+            color: #10b981;
+        }
+
+        .action-warning {
+            color: #f59e0b;
+        }
+
+        .action-danger {
+            color: #ef4444;
+        }
+
+        .action-primary {
+            color: #3b82f6;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(96, 165, 250, 0.3);
+            border-top: 4px solid #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        .loading-text {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-card {
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 12px;
+            width: 85%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            padding: 5px 8px 5px 8px;
+        }
+
+        .popup-overlay.active .popup-card {
+            transform: translateY(0);
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 3px;
+            right: 10px;
+            font-size: 24px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .popup-close:hover {
+            color: #ef4444;
+        }
+
+        .popup-content {
+            color: #e2e8f0;
+            line-height: 2.2;
+            white-space: normal;
+            word-break: break-all;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px 0 15px;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .search-item {
+                flex: 1 1 45%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .table-container {
+                min-width: 100%;
+                border-radius: 0;
+                margin-left: -15px;
+                margin-right: -15px;
+                width: calc(100% + 30px);
+            }
+
+            th, td {
+                padding: 8px 10px !important;
+                white-space: nowrap;
+            }
+
+            td, td a {
+                font-size: 0.8rem;
+            }
+
+            .action-btn {
+                font-size: 14px;
+                margin: 0 3px;
+            }
+        }
+
+        @media (max-width: 576px) {
+
+            .card-title {
+                font-size: 1.3rem;
+            }
+
+            .btn {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+
+            .card-body {
+                padding: 15px 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="header">
+    <h1>GhifunDLNA 媒体管理</h1><br>
+</div>
+
+<div class="dashboard">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <i class="fas fa-list"></i>
+                <span style="margin-top: -5px">媒体列表</span>
+            </div>
+            <button class="btn btn-success btn-sm margin-left" onclick="media_get_list()">
+                <i class="fas fa-sync-alt"></i> 刷新
+            </button>
+            <button class="btn btn-danger btn-sm margin-left" onclick="clear_all_media()">
+                <i class="fas fa-trash-alt"></i> 清空
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>播放</th>
+                        <th>标题</th>
+                        <th>专辑</th>
+                        <th>艺术家</th>
+                        <th>制作</th>
+                        <th>复制</th>
+                        <th>下载</th>
+                        <th>保存</th>
+                        <th>时间</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="media_list">
+                    <tr>
+                        <td colspan="10" class="loading">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">正在加载媒体列表...</div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 消息弹窗 -->
+<div class="popup-overlay" id="popup-overlay" onclick="clickPopup(event)">
+    <div class="popup-card">
+        <span class="popup-close" onclick="closePopup()">&times;</span>
+        <div class="popup-content" id="popup-content"></div>
+    </div>
+</div>
+
+<script src="./static/js/jquery.min.js"></script>
+<script src="./static/js/toastr.min.js"></script>
+<script src="./static/js/vendor.bundle.base.js"></script>
+<script src="./static/js/iframe.js"></script>
+<!--<script src="./static/js/off-canvas.js"></script>-->
+<!--<script src="./static/js/misc.js"></script>-->
+
+<script>
+    // 初始化Toastr
+    toastr.options = {
+        closeButton: true,
+        progressBar: true,
+        positionClass: 'toast-bottom-right',
+        timeOut: 3000,
+        preventDuplicates: true
+    };
+
+    // 缓存DOM元素引用
+    const domElements = {
+        mediaList: document.getElementById("media_list"),
+        popupOverlay: document.getElementById("popup-overlay"),
+        popupContent: document.getElementById("popup-content")
+    };
+
+    // 页面加载时获取媒体列表
+    document.addEventListener('DOMContentLoaded', function() {
+        media_get_list();
+    });
+
+    // 获取媒体列表
+    function media_get_list(){
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/media_get_list', true);
+        xhr.responseType = 'text';
+        xhr.timeout = 10000; // 设置 10 秒超时
+        
+        // 显示加载状态
+        domElements.mediaList.innerHTML = `
+            <tr>
+                <td colspan="10" class="loading">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">正在加载媒体列表...</div>
+                </td>
+            </tr>
+        `;
+        
+        xhr.onload = function () {
+            if (xhr.readyState === xhr.DONE) {
+                if (xhr.status === 200) {
+                    try {
+                        const mediaList = JSON.parse(xhr.responseText);
+                        if (mediaList["dlna_list"] !== null && mediaList["dlna_list"] !== undefined) {
+                            const sst = mediaList["dlna_list"];
+                            
+                            // 如果没有数据
+                            if (sst.length === 0) {
+                                domElements.mediaList.innerHTML = `
+                                    <tr>
+                                        <td colspan="10" style="text-align: center; padding: 30px; color: #94a3b8;">
+                                            <i class="fas fa-info-circle"></i> 没有找到媒体文件
+                                        </td>
+                                    </tr>
+                                `;
+                                return;
+                            }
+                            
+                            // 批量构建 HTML 字符串，减少 DOM 操作
+                            let htmlRows = '';
+                            for (let i = sst.length - 1; i >= 0; i--) {
+                                htmlRows += buildTableRow(sst[i], i);
+                            }
+                            
+                            // 一次性插入所有行
+                            domElements.mediaList.innerHTML = htmlRows;
+                        } else {
+                            domElements.mediaList.innerHTML = `
+                                <tr>
+                                    <td colspan="10" style="text-align: center; padding: 30px; color: #94a3b8;">
+                                        <i class="fas fa-info-circle"></i> 没有找到媒体文件
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    } catch (e) {
+                        console.error('JSON 解析错误:', e);
+                        toastr.error('数据格式错误');
+                        domElements.mediaList.innerHTML = `
+                            <tr>
+                                <td colspan="10" style="text-align: center; padding: 30px; color: #ef4444;">
+                                    <i class="fas fa-exclamation-triangle"></i> 数据解析失败
+                                </td>
+                            </tr>
+                        `;
+                    }
+                } else {
+                    toastr.error("获取媒体列表失败");
+                    domElements.mediaList.innerHTML = `
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 30px; color: #ef4444;">
+                                <i class="fas fa-exclamation-triangle"></i> 加载失败，请刷新重试
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        };
+        xhr.onerror = function() {
+            toastr.error("网络错误，无法获取媒体列表");
+            domElements.mediaList.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 30px; color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle"></i> 网络错误
+                    </td>
+                </tr>
+            `;
+        };
+        xhr.ontimeout = function() {
+            toastr.error("请求超时");
+            domElements.mediaList.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 30px; color: #ef4444;">
+                        <i class="fas fa-clock"></i> 请求超时，请刷新重试
+                    </td>
+                </tr>
+            `;
+        };
+        xhr.send(null);
+    }
+
+    // 构建表格行 HTML 字符串
+    function buildTableRow(item, index) {
+        const truncatedTitle = item["r_name"].length > 30
+            ? item["r_name"].substr(0, 27) + "..."
+            : item["r_name"];
+
+        return `<tr>
+                    <td>
+                        <a href="openvideo?title=${encodeURIComponent(item["o_name"])}&videoUrl=${encodeURIComponent(item["link"])}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="action-btn action-primary"
+                           title="播放">
+                            <i class="fas fa-play-circle"></i>
+                        </a>
+                    </td>
+                    <td title="${item["o_name"]}">${truncatedTitle}</td>
+                    <td>${item["album"] || '-'}</td>
+                    <td>${item["artist"] || '-'}</td>
+                    <td>${item["creator"] || '-'}</td>
+                    <td>
+                        <a href="#"
+                           onclick="copy_link('${item["link"]}')"
+                           class="action-btn action-info"
+                           title="复制链接">
+                            <i class="fas fa-copy"></i>
+                        </a>
+                    </td>
+                    <td>
+                        <a href="${item["link"]}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           download="${item["filename"]}"
+                           class="action-btn action-success"
+                           title="下载">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </td>
+                    <td>
+                        <a type="button"
+                                class="action-btn action-warning"
+                                onclick="save_media(${index})"
+                                title="保存到服务器">
+                            <i class="fas fa-save"></i>
+                        </a>
+                    </td>
+                    <td>${item["time"]}</td>
+                    <td>
+                        <a type="button"
+                                class="action-btn action-danger"
+                                onclick="media_del(${index})"
+                                title="删除">
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
+                    </td>
+                </tr>`;
+    }
+
+
+
+    // 删除媒体
+    function media_del(mip) {
+        const r = confirm("是否删除选择的媒体?");
+        if (r) {
+            toastr.info("正在删除媒体...");
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/media_del?id=' + mip, true);
+            xhr.responseType = 'text';
+            xhr.onload = function () {
+                if (xhr.readyState === xhr.DONE) {
+                    if (xhr.status === 200) {
+                        toastr.success(xhr.responseText);
+                        // setTimeout(function() {
+                            media_get_list();
+                        // }, 1500);
+                    } else {
+                        toastr.error("删除失败");
+                    }
+                }
+            };
+            xhr.onerror = function() {
+                toastr.error("网络错误，无法删除媒体");
+            };
+            xhr.send(null);
+        }
+    }
+
+    // 保存媒体到服务器
+    function save_media(mip) {
+        const r = confirm("是否保存媒体到服务器?");
+        if (r) {
+            toastr.info("正在保存媒体...");
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/save_media?id=' + mip, true);
+            xhr.responseType = 'text';
+            xhr.onload = function () {
+                if (xhr.readyState === xhr.DONE) {
+                    if (xhr.status === 200) {
+                        toastr.success(xhr.responseText);
+                    } else {
+                        toastr.error("保存失败");
+                    }
+                }
+            };
+            xhr.onerror = function() {
+                toastr.error("网络错误，无法保存媒体");
+            };
+            xhr.send(null);
+        }
+    }
+
+    // 复制链接
+    function copy_link(link) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link)
+                .then(() => {
+                    toastr.success('链接已复制');
+                })
+                .catch(err => {
+                    console.error('复制失败:', err);
+                    // 备用方案：使用临时文本框
+                    copyLinkFallback(link);
+                });
+        } else {
+            copyLinkFallback(link);
+        }
+    }
+
+    // 复制链接备用方案
+    function copyLinkFallback(link) {
+        const tempInput = document.createElement('input');
+        tempInput.value = link;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        toastr.success('链接已复制');
+    }
+
+    // 显示消息弹窗
+    function showPopup(message) {
+        domElements.popupContent.innerHTML = message;
+        domElements.popupOverlay.classList.add("active");
+    }
+
+    // 关闭弹窗
+    function closePopup() {
+        domElements.popupOverlay.classList.remove("active");
+    }
+
+    // 点击弹窗外部关闭
+    function clickPopup(event) {
+        if (event.target === domElements.popupOverlay) {
+            closePopup();
+        }
+    }
+
+    // 清空所有媒体
+    function clear_all_media() {
+        const r = confirm("确定要清空所有媒体吗？此操作不可恢复！");
+        if (r) {
+            toastr.info("正在清空媒体列表...");
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/media_clear_all', true);
+            xhr.responseType = 'text';
+            xhr.onload = function () {
+                if (xhr.readyState === xhr.DONE) {
+                    if (xhr.status === 200) {
+                        toastr.success(xhr.responseText);
+                        media_get_list();
+                    } else {
+                        toastr.error("清空失败");
+                    }
+                }
+            };
+            xhr.onerror = function() {
+                toastr.error("网络错误，无法清空媒体列表");
+            };
+            xhr.send(null);
+        }
+    }
+</script>
+</body>
+</html>

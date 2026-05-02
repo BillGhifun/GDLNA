@@ -1,0 +1,456 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GhifunDNS Monitor</title>
+  <link rel="stylesheet" href="./static/css/font-awesome.all.min.css">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+      z-index: -1;
+    }
+
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #60a5fa;
+      border-radius: 4px;
+    }
+
+    #mainframe {
+      border: none;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 浮动导航按钮样式 */
+    .floating-nav {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 1000;
+    }
+
+    .nav-button {
+      width: 40px;
+      height: 40px;
+      background: rgba(30, 41, 59, 0.7);
+      /*backdrop-filter: blur(10px);*/
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #60a5fa;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(2, 8, 20, 0.4);
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .nav-button:hover {
+      background: rgba(56, 189, 248, 0.15);
+      transform: scale(1.1);
+    }
+
+    .nav-svg-icon {
+      width: 24px;
+      height: 24px;
+      filter: brightness(0) saturate(100%) invert(64%) sepia(48%) saturate(491%) hue-rotate(183deg) brightness(91%) contrast(91%);
+      transition: transform 0.3s ease;
+    }
+
+    .nav-button:hover .nav-svg-icon {
+      filter: brightness(0) saturate(100%) invert(77%) sepia(17%) saturate(1470%) hue-rotate(183deg) brightness(99%) contrast(94%);
+    }
+
+    .nav-button.menu-open .nav-svg-icon {
+      transform: rotate(90deg);
+    }
+
+    .nav-menu {
+      position: absolute;
+      top: 50px;
+      left: 0;
+      width: 150px;
+      background: rgba(30, 41, 59, 0.95);
+      /*backdrop-filter: blur(15px);*/
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(2, 8, 20, 0.5);
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px) scale(0.95);
+      transition: all 0.2s ease-out;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transform-origin: top left;
+      max-height: 70vh;
+      /*min-height: 50vh;*/
+      /*max-height: 50vh;*/
+      overflow-y: auto;
+    }
+
+    .nav-menu.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+
+    .nav-item {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      /*padding: 12px 12px;*/
+      padding: 8px 8px;
+      color: #e2e8f0;
+      text-decoration: none;
+      transition: all 0.2s;
+      border-left: 4px solid transparent;
+      font-size: 16px;
+      font-weight: 500;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-link i {
+      width: 25px;
+      text-align: center;
+      font-size: 15px;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 4px solid #60a5fa;
+      color: #38bdf8;
+    }
+
+    .nav-link.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-left: 4px solid #3b82f6;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    .nav-link.active i {
+      color: #3b82f6;
+    }
+
+    /* 页面标题样式 */
+    .page-title {
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 100;
+    }
+
+    .page-title h1 {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #60a5fa 0%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .page-title p {
+      color: #94a3b8;
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* 版本信息 */
+    .version-info {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      color: #64748b;
+      font-size: 0.9rem;
+      z-index: 100;
+    }
+
+    /* 响应式设计 */
+    @media (max-height: 700px) {
+      .nav-menu {
+        max-height: 60vh;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page-title {
+        top: 20px;
+      }
+
+      .page-title h1 {
+        font-size: 1.8rem;
+      }
+
+      .page-title p {
+        font-size: 1rem;
+        max-width: 90%;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- 主框架 -->
+<iframe id="mainframe" src="/main.html" name="mainframe"></iframe>
+
+<!-- 浮动导航按钮 -->
+<div class="floating-nav">
+  <div class="nav-menu" id="navMenu">
+    <ul class="nav-item">
+      <li><a class="nav-link" href="/main.html" onclick="clsList(this);" target="mainframe"><i class="fas fa-tachometer-alt"></i>媒体管理</a></li>
+      <li><a class="nav-link" href="/filemanager.html" onclick="clsList(this);" target="mainframe"><i class="fas fa-history"></i>文件管理</a></li>
+      <li><a class="nav-link" href="/settings.html" onclick="clsList(this);" target="mainframe"><i class="fas fa-edit"></i>设置</a></li>
+<!--      <li><a class="nav-link" href="#" onclick='logout();' target="mainframe"><i class="fas fa-sign-out-alt"></i>退出系统</a></li>-->
+    </ul>
+  </div>
+  <div class="nav-button" id="navButton" onclick="toggleMenu()">
+    <img src="./static/picture/logo-ico.svg" alt="菜单" class="nav-svg-icon">
+  </div>
+</div>
+
+<!--&lt;!&ndash; 版本信息 &ndash;&gt;-->
+<!--<div class="version-info">2026 GhifunDLNA</div>-->
+
+<script>
+  // // 页面加载时初始化
+  // window.onload = function() {
+  //   // 验证代码...
+  //   var xhr = new XMLHttpRequest();
+  //   xhr.open('GET', '/api/websubmit?t='+ new Date().getTime(), true);
+  //   xhr.responseType = 'text';
+  //   xhr.followRedirects = false;
+  //   xhr.onreadystatechange = function() {
+  //     if (xhr.readyState === xhr.DONE) {
+  //       if (xhr.status !== 200) {
+  //         location.replace("/login.html");
+  //       } else {
+  //         // 验证成功后初始化菜单选中状态
+  //         initMenuSelection();
+  //       }
+  //     }
+  //   };
+  //   xhr.send(null);
+  // }
+
+  // 初始化菜单选中状态
+  function initMenuSelection() {
+    // 从localStorage获取上次选中的菜单项
+    const lastSelected = localStorage.getItem('selectedMenu');
+
+    // 获取当前iframe的URL
+    const iframe = document.getElementById('mainframe');
+    let currentUrl;
+
+    try {
+      currentUrl = iframe.contentWindow.location.pathname;
+    } catch (e) {
+      // 如果无法获取iframe URL（可能由于跨域限制），使用默认值
+      currentUrl = '/main.html';
+    }
+
+    // 根据URL确定应该选中的菜单项
+    const menuLinks = document.querySelectorAll('.nav-link');
+    let targetLink = null;
+
+    menuLinks.forEach(link => {
+      // 清除所有选中状态
+      link.classList.remove('active');
+
+      // 检查链接是否匹配当前URL
+      const linkHref = link.getAttribute('href');
+      if (linkHref === currentUrl) {
+        targetLink = link;
+      }
+    });
+
+    // 如果找到匹配的链接，选中它
+    if (targetLink) {
+      targetLink.classList.add('active');
+    } else if (lastSelected) {
+      // 如果没有匹配的链接，但localStorage中有保存的选中项
+      const lastLink = document.querySelector(`.nav-link[href="${lastSelected}"]`);
+      if (lastLink) {
+        lastLink.classList.add('active');
+      }
+    } else {
+      // 默认选中主面板
+      const defaultLink = document.querySelector('.nav-link[href="/main.html"]');
+      if (defaultLink) {
+        defaultLink.classList.add('active');
+      }
+    }
+  }
+
+  // 切换菜单显示/隐藏
+  function toggleMenu() {
+    const menu = document.getElementById('navMenu');
+    const button = document.getElementById('navButton');
+    const hint = document.getElementById('menuHint');
+
+    if (menu.classList.contains('show')) {
+      menu.classList.remove('show');
+      button.classList.remove('menu-open');
+      hint.classList.remove('show');
+    } else {
+      menu.classList.add('show');
+      button.classList.add('menu-open');
+
+      // 显示提示信息，2秒后自动隐藏
+      hint.classList.add('show');
+      setTimeout(() => {
+        hint.classList.remove('show');
+      }, 2000);
+
+      // 菜单显示时更新选中状态
+      initMenuSelection();
+    }
+  }
+
+  // // 关闭菜单（点击菜单项后）
+  // function clsList(element) {
+  //   const menu = document.getElementById('navMenu');
+  //   const button = document.getElementById('navButton');
+  //   const hint = document.getElementById('menuHint');
+  //
+  //   menu.classList.remove('show');
+  //   button.classList.remove('menu-open');
+  //   hint.classList.remove('show');
+  //
+  //   // 移除所有菜单项的active类
+  //   const menuLinks = document.querySelectorAll('.nav-link');
+  //   menuLinks.forEach(link => {
+  //     link.classList.remove('active');
+  //   });
+  //
+  //   // 为当前点击的菜单项添加active类
+  //   element.classList.add('active');
+  //
+  //   // 保存选中状态到localStorage
+  //   const href = element.getAttribute('href');
+  //   if (href && href !== '#') {
+  //     localStorage.setItem('selectedMenu', href);
+  //   }
+  // }
+
+  // 关闭菜单（点击菜单项后）
+  function clsList(element) {
+    const menu = document.getElementById('navMenu');
+    const button = document.getElementById('navButton');
+    const hint = document.getElementById('menuHint');
+    const iframe = document.getElementById('mainframe');
+
+    // 立即开始加载iframe内容
+    const href = element.getAttribute('href');
+    if (href && href !== '#') {
+      iframe.src = href;
+      localStorage.setItem('selectedMenu', href);
+    }
+
+    // 移除所有菜单项的active类
+    const menuLinks = document.querySelectorAll('.nav-link');
+    menuLinks.forEach(link => {
+      link.classList.remove('active');
+    });
+
+    // 为当前点击的菜单项添加active类
+    element.classList.add('active');
+
+    // 使用setTimeout确保浏览器有机会开始加载iframe内容
+    setTimeout(() => {
+      menu.classList.remove('show');
+      button.classList.remove('menu-open');
+      hint.classList.remove('show');
+    }, 100); // 10ms的延迟足以让浏览器开始处理iframe加载
+  }
+
+
+
+  function logout() {
+    var r = confirm("是否退出系统?");
+    if (r) {
+      document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/");
+      });
+      // 清除菜单选中状态
+      localStorage.removeItem('selectedMenu');
+      location.replace("/login.html");
+    }
+  }
+
+  // 点击页面其他地方关闭菜单
+  document.addEventListener('click', function(event) {
+    const navButton = document.getElementById('navButton');
+    const navMenu = document.getElementById('navMenu');
+    const button = document.getElementById('navButton');
+    const hint = document.getElementById('menuHint');
+
+    if (!navButton.contains(event.target) && !navMenu.contains(event.target)) {
+      navMenu.classList.remove('show');
+      button.classList.remove('menu-open');
+      hint.classList.remove('show');
+    }
+  });
+
+  // 添加键盘快捷键支持（ESC键关闭菜单）
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const menu = document.getElementById('navMenu');
+      const button = document.getElementById('navButton');
+      const hint = document.getElementById('menuHint');
+
+      menu.classList.remove('show');
+      button.classList.remove('menu-open');
+      hint.classList.remove('show');
+    }
+  });
+
+  // 监听iframe加载事件，更新菜单选中状态
+  document.getElementById('mainframe').addEventListener('load', function() {
+    initMenuSelection();
+  });
+</script>
+</body>
+</html>
