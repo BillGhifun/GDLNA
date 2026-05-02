@@ -1,4 +1,4 @@
-package dnslogger
+package dlnalogger
 
 import (
 	"fmt"

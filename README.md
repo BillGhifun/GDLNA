@@ -154,7 +154,7 @@ GDLNA/
 │   ├── dlna.go         # SSDP 发现 & 设备描述
 │   └── http.go         # Web 服务 & API
 ├── dlnadb/              # 数据库操作
-├── dnslogger/           # 日志模块
+├── dlnalogger/           # 日志模块
 ├── fm/                  # 文件管理
 ├── getdata/             # 数据解析
 ├── httpdown/            # HTTP 下载

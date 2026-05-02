@@ -3,11 +3,12 @@ package dlna
 import (
 	"GDLNA/cfg"
 	"GDLNA/dlnadb"
-	"GDLNA/dnslogger"
+	"GDLNA/dlnalogger"
 	"GDLNA/fm"
 	"GDLNA/getdata"
 	"GDLNA/httpdown"
 	"GDLNA/system"
+	"GDLNA/websource"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -19,21 +20,49 @@ import (
 	"time"
 
 	"github.com/beevik/etree"
-	"github.com/labstack/echo"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
+	"github.com/labstack/echo/v4"
 )
+
+func StaticAssets(root string) *assetfs.AssetFS {
+	return &assetfs.AssetFS{
+		Asset:     websource.Asset,
+		AssetDir:  websource.AssetDir,
+		AssetInfo: websource.AssetInfo,
+		Prefix:    root,
+	}
+}
+
+func LoadWebSource(e *echo.Echo) {
+	// 1. 修复 API 路由组（必须赋值给变量并使用该变量来注册子路由）
+	dlna := e.Group("/dlna")
+	// 以下两个 API 不会与 /dlna/AVTransport/desc.xml 产生冲突，因为 Echo 是精准匹配
+	dlna.GET("/desc.xml", handleDeviceDesc)         // 实际访问路径：/dlna/desc.xml
+	dlna.POST("/AVTransport/action", getRemoteLink) // 实际访问路径：/dlna/AVTransport/action
+
+	// 2. 静态文件处理器（不需要使用 e.Group("/*")，直接在根实例 e 上操作）
+	if _, err := os.Stat("www"); err == nil {
+		// 【物理目录模式】
+		// e.Static("/", "www") 会自动处理所有上面没注册过的 GET 请求。
+		// 当你请求 /dlna/AVTransport/desc.xml 时，它会自动去寻找 www/dlna/AVTransport/desc.xml
+		e.Static("/", "www")
+	} else {
+		// 【静态数据模式】
+		assetHandler := http.FileServer(StaticAssets("/www/"))
+		// 使用根实例的 /* 捕捉所有未匹配路由，直接交给内嵌文件系统
+		// 当请求 /dlna/AVTransport/desc.xml 时，FileServer 会在 StaticAssets 中去寻找该路径
+		e.GET("/*", echo.WrapHandler(assetHandler))
+	}
+}
 
 func WebHandleList() {
 	e := echo.New()
 	e.HideBanner = true // 隐藏ECHO标题
 	e.HidePort = true   // 隐藏ECHO端口显示
 
-	// 动态处理设备描述XML（必须在静态路由之前注册）
-	e.GET("/dlna/desc.xml", handleDeviceDesc)
-	
-	e.Static("/", "www")
-	e.Static("/movies", "movies")
-
-	e.POST("dlna/AVTransport/action", getRemoteLink)
+	//// 动态路由必须先注册，以确保优先级高于静态路由
+	//e.GET("/dlna/desc.xml", handleDeviceDesc)
+	//e.POST("/dlna/AVTransport/action", getRemoteLink)
 
 	e.GET("/media_get_list", getMediaList)
 
@@ -47,7 +76,14 @@ func WebHandleList() {
 
 	e.GET("/file_del", fileDel)
 
+	e.Static("/movies", "movies")
+
 	e.GET("/openvideo", openVideo)
+
+	// 静态路由必须后注册，以确保动态路由优先级更高
+	// 优先加载本地 www 目录，如果不存在则使用编译的静态资源
+	LoadWebSource(e)
+
 	//启动http server, 并监听8080端口，冒号（:）前面为空的意思就是绑定网卡所有Ip地址，本机支持的所有ip地址都可以访问。
 	go initGOGWebServerHTTP(e)
 }
@@ -94,15 +130,6 @@ func getFileList(c echo.Context) error {
 
 func openVideo(c echo.Context) error {
 	c.Response().Header().Set("Referrer-Policy", "no-referrer") // 删除 referer
-	//tmpHTML := "<!DOCTYPE html>\n<html lang=\"zh\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>视频播放器示例</title>\n    <script>\n        // 获取URL中的查询参数\n        function getQueryParam(param) {\n            const urlParams = new URLSearchParams(window.location.search);\n            return urlParams.get(param);\n        }\n\n        window.onload = function() {\n            const videoUrl = getQueryParam('videoUrl'); // 获取名为'videoUrl'的参数\n            if (videoUrl) {\n                const videoElement = document.getElementById('videoPlayer');\n                videoElement.src = videoUrl; // 设置视频源\n                videoElement.play(); // 播放视频\n            }\n        };\n    </script>\n</head>\n<body>\n\n    <h1>视频播放器</h1>\n    <video id=\"videoPlayer\" controls width=\"600\">\n        您的浏览器不支持视频元素。\n    </video>\n\n</body>\n</html>"
-
-	//tmpHTML := "<!DOCTYPE html>\n<html lang=\"zh\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>视频播放器示例</title>\n    <script>\n        // 获取URL中的查询参数\n        function getQueryParam(param) {\n            const urlParams = new URLSearchParams(window.location.search);\n            return urlParams.get(param);\n        }\n\n        window.onload = function() {\n            const videoUrl = getQueryParam('videoUrl'); // 获取名为'videoUrl'的参数\n            if (videoUrl) {\n                const videoElement = document.getElementById('videoPlayer');\n                videoElement.src = videoUrl; // 设置视频源\n                videoElement.play(); // 播放视频\n            }\n        };\n    </script>\n</head>\n<body>\n\n    <video id=\"videoPlayer\" controls style=\"width: 100%; height: 100vh;\">\n        您的浏览器不支持视频元素。\n    </video>\n\n</body>\n</html>"
-
-	//tmpHTML := "<!DOCTYPE html>\n<html lang=\"zh\">\n" +
-	//	"<style>\n    html, body {\n        height: 100%; /* 确保html和body的高度为100% */\n        margin: 0;    /* 去掉默认的边距 */\n        padding: 0;   /* 去掉默认的内边距 */\n        overflow: hidden; /* 隐藏滚动条 */\n    }\n\n    #videoPlayer {\n        border: none; /* 去掉视频的边框 */\n    }\n</style>" +
-	//	//"<style>\n    html, body {\n        height: 100%; /* 确保html和body的高度为100% */\n        margin: 0;    /* 去掉默认的边距 */\n    }\n</style>" +
-	//	"<head>\n    <title>视频播放器</title>\n    <script>\n        // 获取URL中的查询参数\n        function getQueryParam(param) {\n            const urlParams = new URLSearchParams(window.location.search);\n            return urlParams.get(param);\n        }\n\n        window.onload = function() {\n            const videoUrl = getQueryParam('videoUrl'); // 获取名为'videoUrl'的参数\n            if (videoUrl) {\n                const videoElement = document.getElementById('videoPlayer');\n                videoElement.src = videoUrl; // 设置视频源\n                videoElement.play(); // 播放视频\n            }\n        };\n    </script>\n</head>\n<body>\n\n<video id=\"videoPlayer\" controls style=\"width: 100%; height: 100%;\"></video>\n\n</body>\n</html>"
-
 	tmpHTML := "<!DOCTYPE html>\n<html lang=\"zh\">\n" +
 		"<style>\n    html, body {\n        height: 100%; /* 确保html和body的高度为100% */\n        margin: 0;    /* 去掉默认的边距 */\n        padding: 0;   /* 去掉默认的内边距 */\n        overflow: hidden; /* 隐藏滚动条 */\n    }\n\n    #videoPlayer {\n        border: none; /* 去掉视频的边框 */\n    }\n</style>" +
 		"<head>\n    <title>视频播放器</title>\n    <script>\n        // 获取URL中的查询参数\n        function getQueryParam(param) {\n            const urlParams = new URLSearchParams(window.location.search);\n            return urlParams.get(param);\n        }\n\n        window.onload = function() {\n            const videoUrl = getQueryParam('videoUrl'); // 获取名为'videoUrl'的参数\n            const title = getQueryParam('title'); // 获取名为'title'的参数\n            if (title) {\n                document.title = title; // 替换页面标题\n            }\n            if (videoUrl) {\n                const videoElement = document.getElementById('videoPlayer');\n                videoElement.src = videoUrl; // 设置视频源\n                videoElement.play(); // 播放视频\n            }\n        };\n    </script>\n</head>\n<body>\n\n<video id=\"videoPlayer\" controls style=\"width: 100%; height: 100%;\"></video>\n\n</body>\n</html>"
@@ -237,33 +264,37 @@ func getRemoteLink(c echo.Context) error {
 	// 解析MetaData
 	getMetaData = getdata.GetMetaData(tmpMetaData.Text())
 
-	dnslogger.Info(fmt.Sprintf("捕获到投屏链接 %s", c.Request().RemoteAddr))
+	// 先获取链接和标题
+	tmpLink := strings.TrimSpace(tmpElement.Text())
+	tmpTitle := getMetaData.Title
+
+	dlnalogger.Info(fmt.Sprintf("收到投屏链接: %s, 标题: %s", tmpLink, tmpTitle))
 
 	for _, tmpMediaInfo := range dlnadb.ListDlna.MediaList {
-		if strings.TrimSpace(tmpElement.Text()) == tmpMediaInfo.Link {
+		if tmpLink == tmpMediaInfo.Link {
+			dlnalogger.Info(fmt.Sprintf("投屏链接已存在: %s", tmpLink))
 			return c.String(200, "已存在投屏数据")
 		}
 	}
 
 	var tmpMainMedia dlnadb.MediaInfo
-	tmpMainMedia.Link = strings.TrimSpace(tmpElement.Text())
-	tmpMainMedia.Title = getMetaData.Title
+	tmpMainMedia.Link = tmpLink
+	tmpMainMedia.Title = tmpTitle
 	tmpMainMedia.RuneTitle = getMetaData.RuneTitle
 	tmpMainMedia.Time = time.Now().Format("2006-01-02 15:04:05")
-	tmpMainMedia.FileName = system.RemoveInvalidChars(getMetaData.Title, tmpMainMedia.Time)
+	tmpMainMedia.FileName = system.RemoveInvalidChars(tmpTitle, tmpMainMedia.Time)
 
 	dlnadb.InsertDLnaData(tmpMainMedia) // 插入数据库
 	dlnadb.ListDlna.MediaList = append(dlnadb.ListDlna.MediaList, tmpMainMedia)
+	dlnalogger.Info(fmt.Sprintf("投屏链接已保存: %s, 时间: %s", tmpLink, tmpMainMedia.Time))
 
 	return c.String(200, "OK")
 }
 
-func initGOGWebServerHTTP(mainEcho *echo.Echo) { // 初始化WEB控制台服务
-	dnslogger.Info(fmt.Sprintf("DLNA媒体链接捕获器"))
-	dnslogger.Info(fmt.Sprintf("HTTP运行于 IP:[%s] 端口:[%s]", "0.0.0.0", cfg.HTTPPort))
-	err := mainEcho.Start("0.0.0.0:" + cfg.HTTPPort)
+func initGOGWebServerHTTP(mainWeb *echo.Echo) { // 初始化WEB控制台服务
+	err := mainWeb.Start("0.0.0.0:" + cfg.HTTPPort)
 	if err != nil {
-		dnslogger.Error(fmt.Sprintf("启动HTTP服务错误! %s", err.Error()))
+		dlnalogger.Error(fmt.Sprintf("启动HTTP服务错误! %s", err.Error()))
 		return
 	}
 }
@@ -271,18 +302,12 @@ func initGOGWebServerHTTP(mainEcho *echo.Echo) { // 初始化WEB控制台服务
 // handleDeviceDesc 动态生成设备描述XML
 func handleDeviceDesc(c echo.Context) error {
 	// 获取本地IP地址
-	localIP := GetLocalIP()
-	if localIP == "" {
-		localIP = cfg.MainAddress
-	}
-
-	dnslogger.Info(fmt.Sprintf("收到设备描述XML请求，UUID=%s, IP=%s, 端口=%s",
-		cfg.DeviceUUID, localIP, cfg.HTTPPort))
+	localIP := cfg.GetLocalIP()
 
 	// 生成设备描述XML
 	xmlContent, err := GenerateDeviceDescXML(localIP)
 	if err != nil {
-		dnslogger.Error(fmt.Sprintf("生成设备描述XML失败: %s", err.Error()))
+		dlnalogger.Error(fmt.Sprintf("生成设备描述XML失败: %s", err.Error()))
 		return c.String(http.StatusInternalServerError, "Internal Server Error")
 	}
 

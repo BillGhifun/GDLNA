@@ -1,7 +1,7 @@
 package dlnadb
 
 import (
-	"GDLNA/dnslogger"
+	"GDLNA/dlnalogger"
 	"GDLNA/system"
 	"encoding/json"
 	"fmt"
@@ -60,7 +60,7 @@ func LoadMainDB() { // 建立一个默认的数据库
 	} else {
 		err := MainDatabase.Close()
 		if err != nil {
-			dnslogger.Error(fmt.Sprintf("重载程序主数据库时发生错误: %s\n", err.Error()))
+			dlnalogger.Error(fmt.Sprintf("重载程序主数据库时发生错误: %s\n", err.Error()))
 			return
 		}
 	}
@@ -69,11 +69,11 @@ func LoadMainDB() { // 建立一个默认的数据库
 	//dsn := system.MainRootPath + "/db/dlna_link.db?cache=shared&mode=rwc"
 	dsn := "." + system.PathCharacter + "db" + system.PathCharacter + "dlna_link.db?cache=shared&mode=rwc"
 	//dsn := system.MainRootPath + "/db/dlna_link.db"
-	dnslogger.Info(fmt.Sprintf("数据库路径: %s", dsn))
+	dlnalogger.Info(fmt.Sprintf("数据库路径: %s", dsn))
 	MainDatabase, bErr = sqlx.Open("sqlite", dsn) // 打开数据库
 	//MainDatabase, bErr = sqlx.Open("sqlite", system.MainRootPath+"/db/gogdb.db") // 打开数据库
 	if bErr != nil {
-		dnslogger.Error(fmt.Sprintf("打开程序主数据库时发生错误: %s\n", bErr.Error()))
+		dlnalogger.Error(fmt.Sprintf("打开程序主数据库时发生错误: %s\n", bErr.Error()))
 		os.Exit(2000)
 	}
 
@@ -82,7 +82,7 @@ func LoadMainDB() { // 建立一个默认的数据库
 	_, err := MainDatabase.Exec("PRAGMA journal_mode=WAL;")
 	//_, err := MainDatabase.Exec("PRAGMA busy_timeout = 5000;")
 	if err != nil {
-		dnslogger.Warning(fmt.Sprintf("无法设置数据库WAL: %s\n", err.Error()))
+		dlnalogger.Warning(fmt.Sprintf("无法设置数据库WAL: %s\n", err.Error()))
 	}
 	// 设置连接池
 	// SetMaxIdleConns 设置空闲连接池中连接的最大数量
@@ -102,16 +102,6 @@ func LoadMainDB() { // 建立一个默认的数据库
 func DLNALinkAdd(nLink MediaInfo) { // 增加一个
 	ListDlna.MediaList = append(ListDlna.MediaList, nLink)
 }
-
-//func DLNALinkHas(nLink MediaInfo) (bool, *MediaInfo) { // 查找
-//	if _, ok := MainDLNATable[nLink.Link]; ok { // 找到条目 把域名全部转为小写
-//		//DnsListHostsNormal[nLink] = DnsListHostsNormal[tmpDomain] + "," + fieldStr[0]
-//		// 返回已存在列表中的提示
-//		return true, MainDLNATable[nLink.Link]
-//	} else { // 没找到条目
-//		return false, &MediaInfo{}
-//	}
-//}
 
 //func DLNALinkDel(nLink MediaInfo) { // 删除一条
 //	delete(MainDLNATable, nLink.Link)
@@ -133,7 +123,7 @@ func createDLNATable() {
 	_, err := MainDatabase.Exec(sqlStmt)
 	if err != nil {
 		if !strings.Contains(err.Error(), "already exists") {
-			dnslogger.Error(fmt.Sprintf("建立投屏数据库时发生错误: %s\n", err.Error()))
+			dlnalogger.Error(fmt.Sprintf("建立投屏数据库时发生错误: %s\n", err.Error()))
 			os.Exit(2005)
 		} else {
 			isFirstBuilt = false
@@ -150,7 +140,7 @@ func loadCacheFromDB() {
 	// 只查询需要的字段
 	rows, err := MainDatabase.Query("SELECT Link, Name, Info, TIME FROM gDLNA")
 	if err != nil {
-		dnslogger.Error("打开数据库缓存表时发生错误")
+		dlnalogger.Error("打开数据库缓存表时发生错误")
 		return
 	}
 	defer rows.Close()
@@ -163,7 +153,7 @@ func loadCacheFromDB() {
 		var dlnaInfo string
 		err = rows.Scan(&dlnaRow.Link, &dlnaRow.Title, &dlnaInfo, &dlnaRow.Time)
 		if err != nil {
-			dnslogger.Error("循环读取数据库缓存表时发生错误")
+			dlnalogger.Error("循环读取数据库缓存表时发生错误")
 			return
 		}
 		var tmpAlbumInfo AlbumInfo
@@ -182,19 +172,19 @@ func loadCacheFromDB() {
 	}
 
 	if rows.Err() != nil { // 检查是否有错误
-		dnslogger.Error(fmt.Sprintf("读取数据库缓存表数据时发生错误: %s", rows.Err().Error()))
+		dlnalogger.Error(fmt.Sprintf("读取数据库缓存表数据时发生错误: %s", rows.Err().Error()))
 		return
 	}
 
 	if !isFirstBuilt { // 首次建立数据库无需压缩
 		_, err = MainDatabase.Exec("VACUUM;") // 执行 VACUUM 命令
 		if err != nil {
-			dnslogger.Error(fmt.Sprintf("执行VACUUM优化时发生错误: %s\n", err.Error()))
+			dlnalogger.Error(fmt.Sprintf("执行VACUUM优化时发生错误: %s\n", err.Error()))
 			return
 		}
 	}
 
-	dnslogger.Info(fmt.Sprintf("装载数据:[%d]条", tmpCount))
+	dlnalogger.Info(fmt.Sprintf("装载数据:[%d]条", tmpCount))
 }
 
 func InsertDLnaData(sourceDLNA MediaInfo) {
@@ -204,7 +194,7 @@ func InsertDLnaData(sourceDLNA MediaInfo) {
 	tmpInfo.Creator = sourceDLNA.Creator
 	jsonIpListData, err := json.Marshal(tmpInfo)
 	if err != nil {
-		dnslogger.Error(fmt.Sprintf("插入DLNA链接错误A: %s", err.Error()))
+		dlnalogger.Error(fmt.Sprintf("插入DLNA链接错误A: %s", err.Error()))
 	}
 
 	// SQL 插入语句，使用 INSERT OR REPLACE
@@ -222,8 +212,8 @@ func InsertDLnaData(sourceDLNA MediaInfo) {
 		sourceDLNA.Time)
 	//return err
 	if err != nil {
-		//dnslogger.Error(err.Error())
-		dnslogger.Error(fmt.Sprintf("插入DLNA链接错误B: %s", err.Error()))
+		//dlnalogger.Error(err.Error())
+		dlnalogger.Error(fmt.Sprintf("插入DLNA链接错误B: %s", err.Error()))
 	}
 
 }

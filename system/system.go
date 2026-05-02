@@ -1,7 +1,7 @@
 package system
 
 import (
-	"GDLNA/dnslogger"
+	"GDLNA/dlnalogger"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,8 +29,8 @@ func ConfirmOS() { // 判断操作系统
 		PathCharacter = "\\"
 		OSType = 0
 	}
-	dnslogger.Info("OS:" + strings.ToUpper(sysType) + "(" + sysArch + ")")
-	//dnslogger.Info("Version:" + MainVersionServer + " " + MainVersionSystem)
+	dlnalogger.Info("OS:" + strings.ToUpper(sysType) + "(" + sysArch + ")")
+	//dlnalogger.Info("Version:" + MainVersionServer + " " + MainVersionSystem)
 }
 
 func GetRootPath() { // 获得程序所在的目录

@@ -2,7 +2,7 @@ package dlna
 
 import (
 	"GDLNA/cfg"
-	"GDLNA/dnslogger"
+	"GDLNA/dlnalogger"
 	"bufio"
 	"bytes"
 	"encoding/xml"
@@ -141,25 +141,8 @@ func GetDeviceName() string {
 	}
 
 	// 如果未配置，则使用默认名称 "GDLNA IP:端口"
-	localIP := GetLocalIP()
-	if localIP == "" {
-		localIP = cfg.MainAddress
-	}
+	localIP := cfg.GetLocalIP()
 	return "GDLNA " + localIP + ":" + cfg.HTTPPort
-}
-
-// GetLocalIP 获取本机实际用于网络通信的 IP 地址
-func GetLocalIP() string {
-	// 创建一个 UDP 连接（不会真正发送数据）
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		dnslogger.Error(fmt.Sprintf("获取本地 IP 失败：%v", err))
-		return cfg.MainAddress
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.String()
 }
 
 type Info struct {
@@ -186,14 +169,11 @@ func handler(r *http.Request) {
 	// 记录收到的 M-SEARCH 请求（相同IP+搜索类型在5秒内只记录一次）
 	logKey := fmt.Sprintf("%s|%s", r.RemoteAddr, st)
 	if shouldLog(logKey) {
-		dnslogger.Info(fmt.Sprintf("收到 M-SEARCH 请求来自：%s, 搜索类型：%s", r.RemoteAddr, st))
+		dlnalogger.Info(fmt.Sprintf("收到 M-SEARCH 请求来自：%s, 搜索类型：%s", r.RemoteAddr, st))
 	}
 
 	// 获取本地实际 IP 地址用于响应
-	localIP := GetLocalIP()
-	if localIP == "" {
-		localIP = cfg.MainAddress // 备用方案
-	}
+	localIP := cfg.GetLocalIP()
 
 	// 根据搜索类型确定响应的USN后缀
 	var usnSuffix string
@@ -232,7 +212,7 @@ func handler(r *http.Request) {
 
 	err := SendUDP(r.RemoteAddr, buf.String())
 	if err != nil {
-		dnslogger.Error(fmt.Sprintf("发送 UDP 数据包失败：%v", err))
+		dlnalogger.Error(fmt.Sprintf("发送 UDP 数据包失败：%v", err))
 	}
 }
 
@@ -250,64 +230,64 @@ func InitUDPSendConn() error {
 		return err
 	}
 	udpSendConn = conn
-	dnslogger.Info(fmt.Sprintf("UDP发送连接已初始化"))
+	dlnalogger.Info(fmt.Sprintf("UDP发送连接已初始化"))
 	return nil
 }
 
 // SendUDP 向指定的客户端地址发送UDP数据包
 func SendUDP(clientAddr string, sendData string) error {
 	if udpSendConn == nil {
-		dnslogger.Error(fmt.Sprintf("UDP发送连接未初始化"))
+		dlnalogger.Error(fmt.Sprintf("UDP发送连接未初始化"))
 		return fmt.Errorf("UDP发送连接未初始化")
 	}
 
 	// 解析客户端地址
 	addr, err := net.ResolveUDPAddr("udp", clientAddr)
 	if err != nil {
-		dnslogger.Error(fmt.Sprintf("解析地址错误: %s", err.Error()))
+		dlnalogger.Error(fmt.Sprintf("解析地址错误: %s", err.Error()))
 		return err
 	}
 
 	// 使用全局UDP socket发送数据
 	_, err = udpSendConn.WriteToUDP([]byte(sendData), addr)
 	if err != nil {
-		dnslogger.Error(fmt.Sprintf("发送数据失败: %s", err))
+		dlnalogger.Error(fmt.Sprintf("发送数据失败: %s", err))
 		return err
 	}
 	return nil
 }
 
 func StartServer() {
-	dnslogger.Info(fmt.Sprintf("启动多播侦听协程..."))
-	
+	dlnalogger.Info(fmt.Sprintf("启动多播侦听协程..."))
+
 	// UDP发送连接已在main.go中初始化
 	if udpSendConn == nil {
-		dnslogger.Error(fmt.Sprintf("UDP发送连接未初始化，请先在main.go中调用InitUDPSendConn()"))
+		dlnalogger.Error(fmt.Sprintf("UDP发送连接未初始化，请先在main.go中调用InitUDPSendConn()"))
 		return
 	}
-	
+
 	var addr *net.UDPAddr
 	var err error
 
 	if addr, err = net.ResolveUDPAddr("udp", "239.255.255.250:1900"); err != nil {
-		dnslogger.Error(fmt.Sprintf("无法加入多播地址"))
+		dlnalogger.Error(fmt.Sprintf("无法加入多播地址"))
 	}
 	var conn net.PacketConn
 	// net.Interface is nil, call net.joinIPv4Group
 	if conn, err = net.ListenMulticastUDP("udp", nil, addr); err != nil {
-		dnslogger.Error(fmt.Sprintf("无法侦听多播地址"))
+		dlnalogger.Error(fmt.Sprintf("无法侦听多播地址"))
 	}
 	buf := make([]byte, 2048)
 	for {
 		n, peerAddr, err := conn.ReadFrom(buf)
 		if err != nil {
-			dnslogger.Error(fmt.Sprintf("read-from error: %s", err.Error()))
+			dlnalogger.Error(fmt.Sprintf("read-from error: %s", err.Error()))
 			break
 		}
 		reqbytes := buf[:n]
 		req, err := http.ReadRequest(bufio.NewReader(bytes.NewBuffer(reqbytes)))
 		if err != nil {
-			dnslogger.Error(fmt.Sprintf("Failed to parse request: %s", err.Error()))
+			dlnalogger.Error(fmt.Sprintf("Failed to parse request: %s", err.Error()))
 			return
 		}
 		req.RemoteAddr = peerAddr.String()
@@ -317,12 +297,9 @@ func StartServer() {
 
 // SendNotify 发送SSDP NOTIFY消息（主动通知）
 func SendNotify() {
-	dnslogger.Info(fmt.Sprintf("开始发送SSDP NOTIFY消息..."))
+	dlnalogger.Info(fmt.Sprintf("开始发送SSDP NOTIFY消息..."))
 
-	localIP := GetLocalIP()
-	if localIP == "" {
-		localIP = cfg.MainAddress
-	}
+	localIP := cfg.GetLocalIP()
 
 	notifyAddr := "239.255.255.250:1900"
 	location := fmt.Sprintf("http://%s:%s/dlna/desc.xml", localIP, cfg.HTTPPort)
@@ -336,11 +313,11 @@ func SendNotify() {
 		"CONFIGID.UPNP.ORG: 1\r\n"
 
 	// 发送 upnp:rootdevice 通知
-	dnslogger.Info(fmt.Sprintf("发送NOTIFY: upnp:rootdevice"))
+	dlnalogger.Info(fmt.Sprintf("发送NOTIFY: upnp:rootdevice"))
 	sendOneNotify(notifyAddr, baseMsg, "upnp:rootdevice", cfg.DeviceUUID+"::upnp:rootdevice")
 
 	// 发送 uuid 通知
-	dnslogger.Info(fmt.Sprintf("发送NOTIFY: uuid"))
+	dlnalogger.Info(fmt.Sprintf("发送NOTIFY: uuid"))
 	sendOneNotify(notifyAddr, baseMsg, "uuid:"+cfg.DeviceUUID, cfg.DeviceUUID)
 
 	// 发送各服务类型通知
@@ -351,11 +328,11 @@ func SendNotify() {
 		"urn:schemas-upnp-org:service:ConnectionManager:1",
 	}
 	for _, nt := range serviceTypes {
-		dnslogger.Info(fmt.Sprintf("发送NOTIFY: %s", nt))
+		dlnalogger.Info(fmt.Sprintf("发送NOTIFY: %s", nt))
 		sendOneNotify(notifyAddr, baseMsg, nt, cfg.DeviceUUID+"::"+nt)
 	}
 
-	dnslogger.Info(fmt.Sprintf("SSDP NOTIFY消息已全部发送，共%d条", 2+len(serviceTypes)))
+	dlnalogger.Info(fmt.Sprintf("SSDP NOTIFY消息已全部发送，共%d条", 2+len(serviceTypes)))
 }
 
 // sendOneNotify 发送单条NOTIFY消息
@@ -363,14 +340,14 @@ func sendOneNotify(targetAddr string, baseMsg string, nt string, usn string) {
 	msg := baseMsg + "NT: " + nt + "\r\n" + "USN: " + usn + "\r\n" + "\r\n"
 	err := sendUDPNotify(targetAddr, msg)
 	if err != nil {
-		dnslogger.Error(fmt.Sprintf("发送NOTIFY消息失败(NT=%s): %v", nt, err))
+		dlnalogger.Error(fmt.Sprintf("发送NOTIFY消息失败(NT=%s): %v", nt, err))
 	}
 }
 
 // sendUDPNotify 发送UDP通知消息
 func sendUDPNotify(targetAddr string, msg string) error {
 	if udpSendConn == nil {
-		dnslogger.Error(fmt.Sprintf("UDP发送连接未初始化"))
+		dlnalogger.Error(fmt.Sprintf("UDP发送连接未初始化"))
 		return fmt.Errorf("UDP发送连接未初始化")
 	}
 
