@@ -1,9 +1,9 @@
-# GDLNA - DLNA 媒体渲染器服务器
+# GDLNA - DLNA 投屏链接捕获工具
 
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-GDLNA 是一个用 Go 语言开发的轻量级 DLNA/UPnP 媒体渲染器服务器，允许你将电脑变成一个 DLNA 接收端，接收来自手机、平板等设备的投屏请求。
+GDLNA 是一个用 Go 语言开发的 DLNA 投屏链接捕获工具。它模拟 DLNA MediaRenderer 设备，拦截并提取来自手机、平板等设备的投屏请求中的媒体地址，方便用户获取视频/音频的真实播放链接。
 
 ## ✨ 功能特性
 
@@ -46,7 +46,7 @@ GDLNA 是一个用 Go 语言开发的轻量级 DLNA/UPnP 媒体渲染器服务�
 
 1. 克隆项目
 ```bash
-git clone https://github.com/你的用户名/GDLNA.git
+git clone https://github.com/BillGhifun/GDLNA.git
 cd GDLNA
 ```
 
@@ -195,4 +195,4 @@ GDLNA/
 ---
 
 **作者**: BillGhifun  
-**项目地址**: https://github.com/你的用户名/GDLNA
+**项目地址**: https://github.com/BillGhifun/GDLNA
