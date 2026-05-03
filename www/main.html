@@ -9,6 +9,7 @@
     <title>GhifunDLNA Monitor</title>
     <link rel="stylesheet" href="./static/css/font-awesome.all.min.css">
     <link rel="stylesheet" href="./static/css/toastr.min.css">
+    <link rel="stylesheet" href="./static/css/confirm-dialog.css">
 <!--    <link rel="stylesheet" href="./static/css/materialdesignicons.min.css">-->
 
     <style>
@@ -709,8 +710,7 @@
 
     // 删除媒体
     function media_del(mip) {
-        const r = confirm("是否删除选择的媒体?");
-        if (r) {
+        showConfirmDialog("删除确认", "是否删除选择的媒体?", function() {
             toastr.info("正在删除媒体...");
             const xhr = new XMLHttpRequest();
             xhr.open('GET', '/media_del?id=' + mip, true);
@@ -731,13 +731,12 @@
                 toastr.error("网络错误，无法删除媒体");
             };
             xhr.send(null);
-        }
+        });
     }
 
     // 保存媒体到服务器
     function save_media(mip) {
-        const r = confirm("是否保存媒体到服务器?");
-        if (r) {
+        showConfirmDialog("保存确认", "是否保存媒体到服务器?", function() {
             toastr.info("正在保存媒体...");
             const xhr = new XMLHttpRequest();
             xhr.open('GET', '/save_media?id=' + mip, true);
@@ -755,7 +754,7 @@
                 toastr.error("网络错误，无法保存媒体");
             };
             xhr.send(null);
-        }
+        });
     }
 
     // 复制链接
@@ -806,8 +805,7 @@
 
     // 清空所有媒体
     function clear_all_media() {
-        const r = confirm("确定要清空所有媒体吗？此操作不可恢复！");
-        if (r) {
+        showConfirmDialog("清空确认", "确定要清空所有媒体吗？此操作不可恢复！", function() {
             toastr.info("正在清空媒体列表...");
             const xhr = new XMLHttpRequest();
             xhr.open('GET', '/media_clear_all', true);
@@ -826,8 +824,9 @@
                 toastr.error("网络错误，无法清空媒体列表");
             };
             xhr.send(null);
-        }
+        });
     }
 </script>
+  <script src="./static/js/confirm-dialog.js"></script>
 </body>
 </html>

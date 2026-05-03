@@ -43,6 +43,15 @@ func main() {
 
 	go dlna.WebHandleList()
 	go dlna.StartServer()
+	go dlna.StartBroadcastListener() // 启动广播监听
+	go dlna.StartTCPServer()         // 启动TCP服务器
+
+	// 初始化UDP 21430端口连接，然后启动监听
+	if err := dlna.InitUDP21430Conn(); err != nil {
+		dlnalogger.Error(fmt.Sprintf("初始化UDP 21430连接失败: %s", err.Error()))
+	} else {
+		go dlna.StartUDP21430Listener() // 启动UDP 21430监听（接收订阅者消息）
+	}
 
 	// 启动SSDP NOTIFY主动通知协程
 	dlna.StartNotifyRoutine()

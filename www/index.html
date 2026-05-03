@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GhifunDLNA Monitor</title>
   <link rel="stylesheet" href="./static/css/font-awesome.all.min.css">
+  <link rel="stylesheet" href="./static/css/confirm-dialog.css">
   <style>
     html, body {
       margin: 0;
@@ -409,15 +410,14 @@
 
 
   function logout() {
-    var r = confirm("是否退出系统?");
-    if (r) {
+    showConfirmDialog("退出确认", "是否退出系统?", function() {
       document.cookie.split(";").forEach(function(c) {
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/");
       });
       // 清除菜单选中状态
       localStorage.removeItem('selectedMenu');
       location.replace("/login.html");
-    }
+    });
   }
 
   // 点击页面其他地方关闭菜单
@@ -452,5 +452,6 @@
     initMenuSelection();
   });
 </script>
+  <script src="./static/js/confirm-dialog.js"></script>
 </body>
 </html>

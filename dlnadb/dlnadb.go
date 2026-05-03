@@ -5,6 +5,7 @@ import (
 	"GDLNA/system"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
@@ -17,7 +18,7 @@ import (
 
 var MainDatabase *sqlx.DB
 
-var muMainWrite sync.RWMutex
+var MuMainWrite sync.RWMutex
 
 //var MainDLNATable = make(map[string]*DLNATable)
 
@@ -66,12 +67,15 @@ func LoadMainDB() { // 建立一个默认的数据库
 	}
 
 	var bErr error
-	//dsn := system.MainRootPath + "/db/dlna_link.db?cache=shared&mode=rwc"
-	dsn := "." + system.PathCharacter + "db" + system.PathCharacter + "dlna_link.db?cache=shared&mode=rwc"
+	////dsn := system.MainRootPath + "/db/dlna_link.db?cache=shared&mode=rwc"
+	//dsn := "." + system.PathCharacter + "db" + system.PathCharacter + "dlna_link.db?cache=shared&mode=rwc"
+
+	dbFile := filepath.Join(system.MainRootPath, "db", "dlna_link.db") // 先安全地生成纯文件路径
+	dsn := fmt.Sprintf("file:%s?cache=shared&mode=rwc", dbFile)        // 拼接 SQLite 的 URI 协议前缀和参数 注意：SQLite 要求使用 "file:" 前缀来启用高级参数
+
 	//dsn := system.MainRootPath + "/db/dlna_link.db"
-	dlnalogger.Info(fmt.Sprintf("数据库路径: %s", dsn))
+	dlnalogger.Info(fmt.Sprintf("数据库路径: %s", dbFile))
 	MainDatabase, bErr = sqlx.Open("sqlite", dsn) // 打开数据库
-	//MainDatabase, bErr = sqlx.Open("sqlite", system.MainRootPath+"/db/gogdb.db") // 打开数据库
 	if bErr != nil {
 		dlnalogger.Error(fmt.Sprintf("打开程序主数据库时发生错误: %s\n", bErr.Error()))
 		os.Exit(2000)
@@ -80,7 +84,6 @@ func LoadMainDB() { // 建立一个默认的数据库
 	//============================================================================
 	// 启用 WAL 模式
 	_, err := MainDatabase.Exec("PRAGMA journal_mode=WAL;")
-	//_, err := MainDatabase.Exec("PRAGMA busy_timeout = 5000;")
 	if err != nil {
 		dlnalogger.Warning(fmt.Sprintf("无法设置数据库WAL: %s\n", err.Error()))
 	}
@@ -114,8 +117,8 @@ func DLNALinkCls() { // 清空
 var isFirstBuilt = true
 
 func createDLNATable() {
-	muMainWrite.Lock()
-	defer muMainWrite.Unlock()
+	MuMainWrite.Lock()
+	defer MuMainWrite.Unlock()
 	sqlStmt := `create table gDLNA (Link TEXT PRIMARY KEY,
 										Name TEXT,
 										Info TEXT,
@@ -146,8 +149,8 @@ func loadCacheFromDB() {
 	defer rows.Close()
 
 	// 读取数据库数据
-	muMainWrite.Lock()
-	defer muMainWrite.Unlock()
+	MuMainWrite.Lock()
+	defer MuMainWrite.Unlock()
 	for rows.Next() {
 		var dlnaRow MediaInfo
 		var dlnaInfo string
@@ -200,8 +203,8 @@ func InsertDLnaData(sourceDLNA MediaInfo) {
 	// SQL 插入语句，使用 INSERT OR REPLACE
 	query := `INSERT INTO gDLNA (Link,Name,Info,TIME) VALUES (?,?,?,?)`
 
-	muMainWrite.Lock()
-	defer muMainWrite.Unlock()
+	MuMainWrite.Lock()
+	defer MuMainWrite.Unlock()
 	// 执行 SQL 插入语句
 	_, err = MainDatabase.Exec(
 		query,
@@ -245,5 +248,42 @@ func ClearAllDLnaData() bool {
 	if err != nil {
 		return false
 	}
+	return true
+}
+
+// AddMediaIfNotExists 检查链接是否已存在，如果不存在则原子地添加到数据库和缓存
+// 返回 true 表示添加了新记录，false 表示已存在或出错
+func AddMediaIfNotExists(media MediaInfo) bool {
+	MuMainWrite.Lock()
+	defer MuMainWrite.Unlock()
+
+	// 检查链接是否已存在
+	for _, m := range ListDlna.MediaList {
+		if m.Link == media.Link {
+			return false
+		}
+	}
+
+	// 构造 AlbumInfo JSON
+	var tmpInfo AlbumInfo
+	tmpInfo.Album = media.Album
+	tmpInfo.Artist = media.Artist
+	tmpInfo.Creator = media.Creator
+	jsonIpListData, err := json.Marshal(tmpInfo)
+	if err != nil {
+		dlnalogger.Error(fmt.Sprintf("AddMediaIfNotExists 序列化AlbumInfo错误: %s", err.Error()))
+		return false
+	}
+
+	// 插入数据库
+	query := `INSERT INTO gDLNA (Link,Name,Info,TIME) VALUES (?,?,?,?)`
+	_, err = MainDatabase.Exec(query, media.Link, media.Title, jsonIpListData, media.Time)
+	if err != nil {
+		dlnalogger.Error(fmt.Sprintf("AddMediaIfNotExists 插入数据库错误: %s", err.Error()))
+		return false
+	}
+
+	// 添加到缓存
+	ListDlna.MediaList = append(ListDlna.MediaList, media)
 	return true
 }
