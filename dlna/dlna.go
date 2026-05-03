@@ -150,6 +150,20 @@ type Info struct {
 }
 
 func handler(r *http.Request) {
+
+	//log.Println("-->收到远程数据:", r.RemoteAddr, r.Method)
+	//// 打印所有 Header
+	//log.Println("---------- Headers ----------")
+	//for key, values := range r.Header {
+	//	log.Printf("%s: %s", key, strings.Join(values, ", "))
+	//}
+	//
+	//// 打印 Query 参数
+	//log.Println("---------- Query Params ----------")
+	//for key, values := range r.URL.Query() {
+	//	log.Printf("%s: %s", key, strings.Join(values, ", "))
+	//}
+
 	// 验证请求方法
 	if r.Method != "M-SEARCH" {
 		return
@@ -159,6 +173,11 @@ func handler(r *http.Request) {
 	if st == "" {
 		return
 	}
+
+	userAgent := r.Header.Get("User-Agent")
+	//if userAgent == "" {
+	//	return
+	//}
 
 	// 验证Man头（M-SEARCH请求必须包含）
 	man := r.Header.Get("Man")
@@ -197,14 +216,31 @@ func handler(r *http.Request) {
 		usnSuffix = "upnp:rootdevice"
 	}
 
+	//"UPnP/1.0 TencentVideoDlna/NewDLNA/1.0 QR/4098\\r\\n"
+	var serverType = "Normal"
+	if strings.Contains(userAgent, "TencentVideoDlna") {
+		serverType = "TencentVideoDlna"
+	}
+
+	switch serverType {
+	case "Normal":
+		serverType = "Linux/5.4 UPnP/1.1 GhifunDLNA/1.0\r\n"
+	case "TencentVideoDlna":
+		dlnalogger.Info("--> TencentVideoDlna")
+		serverType = "Linux/4.4.146 UPnP/1.0 QQLiveTV/1.0\r\n"
+	}
+
 	// 使用 strings.Builder 高效构建响应
 	var buf strings.Builder
 	buf.WriteString("HTTP/1.1 200 OK\r\n")
 	buf.WriteString("CACHE-CONTROL: max-age=1800\r\n")
 	buf.WriteString(fmt.Sprintf("USN: %s::%s\r\n", cfg.DeviceUUID, usnSuffix))
 	buf.WriteString(fmt.Sprintf("LOCATION: http://%s:%s/dlna/desc.xml\r\n", localIP, cfg.HTTPPort))
-	buf.WriteString("SERVER: Linux/5.4 UPnP/1.1 GhifunDLNA/1.0\r\n")
+	//buf.WriteString("SERVER: Linux/5.4 UPnP/1.1 GhifunDLNA/1.0\r\n")
+	buf.WriteString("SERVER: " + serverType)
 	buf.WriteString("EXT: \r\n")
+	//buf.WriteString("DATE: " + time.Now().Format(time.RFC1123) + "\r\n")
+	buf.WriteString(fmt.Sprintf("DATE: %s\r\n", time.Now().UTC().Format(time.RFC1123)))
 	buf.WriteString(fmt.Sprintf("ST: %s\r\n", st))
 	buf.WriteString("BOOTID.UPNP.ORG: 1\r\n")
 	buf.WriteString("CONFIGID.UPNP.ORG: 1\r\n")
@@ -270,25 +306,30 @@ func StartServer() {
 	var err error
 
 	if addr, err = net.ResolveUDPAddr("udp", "239.255.255.250:1900"); err != nil {
-		dlnalogger.Error(fmt.Sprintf("无法加入多播地址"))
+		dlnalogger.Error(fmt.Sprintf("无法解析多播地址: %v", err))
+		return
 	}
+
 	var conn net.PacketConn
 	// net.Interface is nil, call net.joinIPv4Group
 	if conn, err = net.ListenMulticastUDP("udp", nil, addr); err != nil {
-		dlnalogger.Error(fmt.Sprintf("无法侦听多播地址"))
+		dlnalogger.Error(fmt.Sprintf("无法侦听多播地址: %v", err))
+		return
 	}
+	defer conn.Close()
+
 	buf := make([]byte, 2048)
 	for {
 		n, peerAddr, err := conn.ReadFrom(buf)
 		if err != nil {
 			dlnalogger.Error(fmt.Sprintf("read-from error: %s", err.Error()))
-			break
+			return
 		}
 		reqbytes := buf[:n]
 		req, err := http.ReadRequest(bufio.NewReader(bytes.NewBuffer(reqbytes)))
 		if err != nil {
 			dlnalogger.Error(fmt.Sprintf("Failed to parse request: %s", err.Error()))
-			return
+			continue
 		}
 		req.RemoteAddr = peerAddr.String()
 		handler(req)
@@ -313,11 +354,11 @@ func SendNotify() {
 		"CONFIGID.UPNP.ORG: 1\r\n"
 
 	// 发送 upnp:rootdevice 通知
-	dlnalogger.Info(fmt.Sprintf("发送NOTIFY: upnp:rootdevice"))
+	//dlnalogger.Info(fmt.Sprintf("发送NOTIFY: upnp:rootdevice"))
 	sendOneNotify(notifyAddr, baseMsg, "upnp:rootdevice", cfg.DeviceUUID+"::upnp:rootdevice")
 
 	// 发送 uuid 通知
-	dlnalogger.Info(fmt.Sprintf("发送NOTIFY: uuid"))
+	//dlnalogger.Info(fmt.Sprintf("发送NOTIFY: uuid"))
 	sendOneNotify(notifyAddr, baseMsg, "uuid:"+cfg.DeviceUUID, cfg.DeviceUUID)
 
 	// 发送各服务类型通知
@@ -328,7 +369,7 @@ func SendNotify() {
 		"urn:schemas-upnp-org:service:ConnectionManager:1",
 	}
 	for _, nt := range serviceTypes {
-		dlnalogger.Info(fmt.Sprintf("发送NOTIFY: %s", nt))
+		//dlnalogger.Info(fmt.Sprintf("发送NOTIFY: %s", nt))
 		sendOneNotify(notifyAddr, baseMsg, nt, cfg.DeviceUUID+"::"+nt)
 	}
 

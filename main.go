@@ -26,6 +26,13 @@ func main() {
 	dlnalogger.Info(fmt.Sprintf("DLNA设备名称: %s", deviceName))
 
 	system.GetRootPath()
+
+	// 检查并创建所需目录
+	if err := system.EnsureRequiredDirs(); err != nil {
+		dlnalogger.Error(fmt.Sprintf("检查目录时出错: %s", err.Error()))
+		return
+	}
+
 	dlnadb.LoadMainDB()
 
 	// 先初始化UDP发送连接，再启动各协程

@@ -9,9 +9,8 @@ import (
 	"strings"
 )
 
-var MainRootPath string  // 程序所在目录
-var PathCharacter string // 路径符
-var OSType int           // windows=0 linux=1
+var MainRootPath string // 程序所在目录
+var OSType int          // windows=0 linux=1
 
 // 错误码
 // 8001 初始化设置服务器地址时错误
@@ -22,11 +21,9 @@ func ConfirmOS() { // 判断操作系统
 	sysArch := runtime.GOARCH // 架构 Architecture
 
 	if sysType == "linux" { // LINUX系统
-		PathCharacter = "/"
 		OSType = 1
 	}
 	if sysType == "windows" { // windows系统
-		PathCharacter = "\\"
 		OSType = 0
 	}
 	dlnalogger.Info("OS:" + strings.ToUpper(sysType) + "(" + sysArch + ")")
@@ -34,27 +31,37 @@ func ConfirmOS() { // 判断操作系统
 }
 
 func GetRootPath() { // 获得程序所在的目录
-	// 获取当前二进制文件的路径
-	var binaryPath string
+	var rootPath string
 	var err error
-	if os.Getenv("DEBUG") == "" { // 非调试环境
-		binaryPath, err = os.Executable()
-		MainRootPath = filepath.Dir(binaryPath) + PathCharacter // 获得程序所在目录
-	} else {
-		binaryPath, err = os.Getwd()
-		MainRootPath = binaryPath + PathCharacter // 获得程序所在目录
-	}
 
-	//fmt.Println("程序目录: " + MainRootPath)
-
-	if err != nil {
-		fmt.Println("无法确认程序所在路径:", err)
+	execPath, execErr := os.Executable()
+	if execErr != nil {
+		fmt.Println("无法确认程序所在路径:", execErr)
 		os.Exit(1001)
 		return
 	}
-	// 切片操作去掉文件名部分
-	//MainRootPath = filepath.Dir(binaryPath) // 获得程序所在目录
-	// 各个改写列表和黑白名单的默认路径  /config/*
+
+	// 检查是否在GoLand/IDE临时目录中运行
+	// GoLand会将可执行文件输出到临时目录，如 C:\Users\xxx\AppData\Local\JetBrains\GoLand2026.1\tmp\GoLand\
+	inGoLandTemp := strings.Contains(execPath, "GoLand") ||
+		strings.Contains(execPath, "JetBrains") ||
+		strings.Contains(execPath, "Temp") ||
+		strings.Contains(execPath, "tmp")
+
+	if inGoLandTemp || os.Getenv("DEBUG") != "" { // 在GoLand中运行或调试环境
+		// 使用当前工作目录（通常是项目目录）
+		rootPath, err = os.Getwd()
+		if err != nil {
+			fmt.Println("无法确认程序所在路径:", err)
+			os.Exit(1001)
+			return
+		}
+		MainRootPath = rootPath
+		dlnalogger.Info("开发环境: 使用工作目录: " + MainRootPath)
+	} else { // 非调试环境，使用可执行文件所在目录
+		MainRootPath = filepath.Dir(execPath)
+		dlnalogger.Info("生产环境: 使用可执行文件目录: " + MainRootPath)
+	}
 }
 
 // RemoveInvalidChars 从文件名中删除不允许的字符
@@ -83,4 +90,26 @@ func GetRuneName(tmpTitle string) string {
 	} else {
 		return "投屏视频"
 	}
+}
+
+// EnsureRequiredDirs 检查并创建程序所需的目录
+func EnsureRequiredDirs() error {
+	// 需要检查的目录列表
+	dirs := []string{"db", "movies"}
+
+	for _, dir := range dirs {
+		dirPath := filepath.Join(MainRootPath, dir)
+		if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+			// 目录不存在，创建它
+			err := os.MkdirAll(dirPath, 0755)
+			if err != nil {
+				dlnalogger.Error(fmt.Sprintf("创建目录失败 %s: %s", dirPath, err.Error()))
+				return err
+			}
+			dlnalogger.Info(fmt.Sprintf("已创建目录: %s", dirPath))
+		} else {
+			dlnalogger.Info(fmt.Sprintf("目录已存在: %s", dirPath))
+		}
+	}
+	return nil
 }

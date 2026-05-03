@@ -77,7 +77,7 @@ func LoadConfig() error {
 	// 检查配置文件是否存在，不存在则创建默认配置
 	if _, err := os.Stat("Config.ini"); os.IsNotExist(err) {
 		dlnalogger.Info("配置文件 Config.ini 不存在，正在生成默认配置...")
-		defaultConfig := []byte("[server]\nADDRESS     = \nHTTP_PORT   = 8181\nDEVICE_NAME = GDLNA Server\n")
+		defaultConfig := []byte("[server]\nADDRESS     = \nHTTP_PORT   = 8181\nDEVICE_NAME = \n")
 		if err := os.WriteFile("Config.ini", defaultConfig, 0644); err != nil {
 			return errors.New("无法创建默认配置文件: " + err.Error())
 		}
@@ -107,7 +107,8 @@ func LoadConfig() error {
 	// 始终基于MAC地址+HTTP端口生成唯一UUID
 	// 这样即使复制整个程序文件夹，不同机器/不同端口的UUID也会不同
 	DeviceUUID = GenerateUUID(HTTPPort)
-	dlnalogger.Info(fmt.Sprintf("基于MAC+端口生成UUID: %s", DeviceUUID))
+	// 基于MAC+端口生成UUID
+	dlnalogger.Info(fmt.Sprintf("生成UUID: %s", DeviceUUID))
 
 	// 确保UUID格式正确 (去掉可能已存在的 "uuid:" 前缀，统一处理)
 	DeviceUUID = strings.TrimPrefix(DeviceUUID, "uuid:")
